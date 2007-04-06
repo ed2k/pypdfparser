@@ -1,4 +1,4 @@
-#notes
+#summary notes
 
 = Origin =
 
@@ -10,7 +10,8 @@ pyPdf
 
 pdfparser data structure,
 
-PDFParser to hold and process the stream
-extract trailers from PDFParser.read_xref(postion)
-trailers is a list of trailer
-trailer is object tree implemented by combination of dict, list as skeleton builder and PDFObjRef, PDFSstream and string as content holder.
+  *PDFParser to hold and process the stream
+  *extract trailers from PDFParser.read_xref(postion)
+  *trailers is a list of trailer
+  *trailer is object tree implemented by combination of dict, list as skeleton builder and PDFObjRef, PDFSstream and string as content holder.
+
