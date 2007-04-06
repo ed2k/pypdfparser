@@ -15,3 +15,5 @@ pdfparser data structure,
   *trailers is a list of trailer
   *trailer is object tree implemented by combination of dict, list as skeleton builder and PDFObjRef, PDFSstream and string as content holder.
 
+
+pyPDF data structure,
