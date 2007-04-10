@@ -17,3 +17,7 @@ pdfparser data structure,
 
 
 pyPDF data structure,
+
+some improvements
+ *allow more lines after %%EOF
+ *FloatObject stream.write('%f' % (self))
