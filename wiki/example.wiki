@@ -1,0 +1,141 @@
+{{{
+import pyPdf
+from pyPdf.pdf import *
+from pyPdf.generic import *
+
+# it is possible some character is not displayed, maybe the font is not included.
+def fill_in_page(base_name):
+   default_size = 16
+   default_space = 12
+   #load layout data
+   layout = {}
+   for line in file(base_name+'.layout').read().splitlines():
+      if line.strip() == '' or line[0] == '#':
+         continue
+      f = line.split()
+      layout[f[0]] = f[1:]
+
+   ops = []
+   #read fillin
+   for line in file(base_name+'.fillin').read().splitlines():
+      if line[0] == '#':
+         continue
+      f = line.split()
+      x = float(layout[f[0]][0])
+      y = float(layout[f[0]][1])
+      size = default_size
+      space = default_space
+      if len(layout[f[0]]) > 2:
+         param = layout[f[0]][2].split('=')
+         if param[0].lower() == 'size':
+            size = int(param[1])
+         elif param[0].lower() == 'space':
+            space = float(param[1])
+
+      newstr = " ".join(f[1:])
+      for idx in xrange(len(newstr)):
+         newx = x+idx*space
+         ch = newstr[idx]
+         arr = [NumberObject(size),NumberObject(0),NumberObject(0),NumberObject(size),
+                FloatObject(newx),FloatObject(y)]
+         ops.append((arr,NameObject('Tm')))
+         # use standard font, so don't worry about encoding or available glyph
+         arr = [StringObject(ch)]
+         #this would lose ArrayObject arr = arr[:-1]
+         ops.append((arr,NameObject('Tj')))
+   return ops
+
+def add_number(page, operations):
+   # TODO use indirect object to save some some bytes
+   if '/F1' not in page['/Resources']['/Font'].keys():
+      f1font = DictionaryObject()
+      f1font[NameObject('/Type')]=NameObject('/Font')
+      f1font[NameObject('/Subtype')]=NameObject('/Type1')
+      f1font[NameObject('/Name')]=NameObject('/F1')
+      f1font[NameObject('/BaseFont')]=NameObject('/Courier')
+      #f1font[NameObject('/Encodeing')]=NameObject('/MacRomanEncoding')
+      page['/Resources']['/Font'][NameObject('/F1')] = f1font
+   
+   content = page['/Contents'].getObject()
+   if not isinstance(content, ContentStream):
+      content = ContentStream(content, page.pdf)
+   #point contents to our new stuff, fully decoded
+   page[NameObject('/Contents')] = content
+
+   # use standard font
+   op = content.operations
+   op.insert(-1,([NumberObject(0),NumberObject(0),NumberObject(0)],NameObject('RG')))
+   op.insert(-1,([NumberObject(0),NumberObject(0),NumberObject(0)],NameObject('rg')))
+   op.insert(-1,([],NameObject('BT')))
+   op.insert(-1,([NameObject('/F1'), NumberObject(1)],NameObject('Tf')))
+   for n in operations:
+      op.insert(-1,n)
+
+   op.insert(-1,(ArrayObject(),NameObject('ET')))      
+
+
+def get_used_char(page):
+   content = page["/Contents"].getObject()
+   if not isinstance(content, ContentStream):
+      content = ContentStream(content, page.pdf)
+   state = ''
+   fonts = {}
+   for operands,operator in content.operations:
+      if operator == 'BT':
+         state = 'start'
+      elif operator == 'Tj':
+         fonts[font] = fonts[font] | set(operands[0])
+      elif operator == 'TJ':
+         for i in operands[0]:
+            if isinstance(i,StringObject):
+               fonts[font] = fonts[font] | set(i)
+      elif operator == 'Tf':
+         font = operands[0]
+         if state != 'start':
+            print 'not after BT'
+         if font not in fonts.keys():
+            fonts[font] = set([])
+      elif operator == 'ET':
+         state = 'end'
+         font = ''
+   return fonts
+
+#find a font that has used 0-9 all ten digit
+def find_number_font(page):
+   fonts = get_used_char(page)
+   num_font = None
+   for k in fonts.keys():
+      if len(fonts[k]) < 10:
+         continue
+      ords = [ord(x) for x in fonts[k]]
+      for i in xrange(16,26):
+         if i not in ords:
+            break
+      else:
+         num_font = k
+         break
+   r = sorted(fonts.items(),lambda x,y: cmp(len(x[1]),len(y[1])))
+   #print r
+   return (num_font,r[-1][0])
+         
+
+
+import sys
+
+output = PdfFileWriter()
+input1 = PdfFileReader(file(sys.argv[1], "rb"))
+input1.decrypt('')
+
+#take out
+base_name = sys.argv[1][:-3]
+for i in xrange(input1.getNumPages()):
+   p = input1.getPage(i)
+   add_number(p,fill_in_page(base_name+str(i)))
+
+   output.addPage(p)
+    
+output.write(file(sys.argv[2],'w+'))
+
+
+}}}
+
