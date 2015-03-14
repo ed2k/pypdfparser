@@ -1,0 +1,21 @@
+# Origin #
+
+pdfparser
+pyPdf
+
+
+# Details #
+
+pdfparser data structure,
+
+  * PDFParser to hold and process the stream
+  * extract trailers from PDFParser.read\_xref(postion)
+  * trailers is a list of trailer
+  * trailer is object tree implemented by combination of dict, list as skeleton builder and PDFObjRef, PDFSstream and string as content holder.
+
+
+pyPDF data structure,
+
+some improvements
+  * allow more lines after %%EOF
+  * FloatObject stream.write('%f' % (self))
